@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+
+import argparse
+import pandas as pd
+import numpy as np
+
+
+def _get_args():
+    '''This function parses and return arguments passed in'''
+    parser = argparse.ArgumentParser(
+        prog='micronorm',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description='Normalizing sample in a DESeq2 fashion')
+    parser.add_argument('countFile', help="path to csv countFile")
+    parser.add_argument(
+        '-o',
+        dest="output",
+        default=None,
+        help="Path to output file. Default = ./<file_basename>.normalized.csv}")
+
+    args = parser.parse_args()
+
+    infile = args.countFile
+    outfile = args.output
+
+    return(infile, outfile)
+
+
+def _get_basename(file_name):
+    if ("/") in file_name:
+        basename = file_name.split("/")[-1].split(".")[0]+".normalized.csv"
+    else:
+        basename = file_name.split(".")[0]+".normalized.csv"
+    return(basename)
+
+
+def read_csv(infile):
+    return(pd.read_csv(infile, index_col=0))
+
+
+def write_csv(pd_dataframe, outfile):
+    pd_dataframe.to_csv(outfile)
+
+
+def normalize(pd_dataframe):
+    step1 = d.apply(np.log, 0)
+    step2 = step1.apply(np.average, 1)
+    step3 = step2[step2.replace([np.inf, -np.inf], np.nan).notnull()]
+    step4_1 = step1[step1.replace(
+        [np.inf, -np.inf], np.nan).notnull().all(axis=1)]
+    step4 = step4_1.subtract(step3, 0)
+    step5 = step4.apply(np.median, 0)
+    step6 = step5.apply(np.exp)
+    step7 = d.divide(step6, 1).apply(round, 1)
+    return(step7)
+
+
+if __name__ == "__main__":
+    INFILE, OUTFILE = _get_args()
+
+    d = read_csv(INFILE)
+    normalized = normalize(d)
+
+    if not OUTFILE:
+        OUTFILE = _get_basename(INFILE)
+
+    write_csv(normalized, OUTFILE)
