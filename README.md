@@ -9,6 +9,7 @@ microbiomeNormalization data/read_count.csv
 ## Example input:
 
 Example file here:  [data/read_count.csv](data/read_count.csv)
+
 |      | Sample1 | Sample2 | Sample3 |
 |------|---------|---------|---------|
 | OTU1 | 0       | 10      | 4       |
