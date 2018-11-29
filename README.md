@@ -45,7 +45,7 @@ positional arguments:
 
 optional arguments:
   -h, --help  show this help message and exit
-  -o OUTPUT   Path to output file. Default = ./<file_basename>.normalized.csv}```
+  -o OUTPUT   Path to output file. Default = ./<file_basename>.normalized.csv
 ```
 
 ## Method

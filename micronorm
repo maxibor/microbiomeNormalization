@@ -16,7 +16,7 @@ def _get_args():
         '-o',
         dest="output",
         default=None,
-        help="Path to output file. Default = ./<file_basename>.normalized.csv}")
+        help="Path to output file. Default = ./<file_basename>.normalized.csv")
 
     args = parser.parse_args()
 
