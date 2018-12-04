@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/maxibor/microbiomeNormalization.svg?branch=master)](https://travis-ci.org/maxibor/microbiomeNormalization)
 # **micronorn**: **Micro**biome **Norm**alization
 
 Normalisation of metagenomics sequencing read count data using a DESeq2 approach
