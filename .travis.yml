@@ -1,0 +1,9 @@
+language: python
+python:
+  - "3.6"
+# command to install dependencies
+install:
+    - pip install numpy
+    - pip install pandas
+# command to run tests
+script: python micronorm data/read_count.csv
