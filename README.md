@@ -5,7 +5,7 @@ Normalisation of metagenomics sequencing read count data using a DESeq2 approach
 ## Quick start
 
 ```
-microbiomeNormalization data/read_count.csv
+micronorm data/read_count.csv
 ```
 
 ## Assumption
