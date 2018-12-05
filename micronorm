@@ -3,6 +3,7 @@
 import argparse
 import pandas as pd
 import numpy as np
+import sys
 
 
 def _get_args():
@@ -10,27 +11,42 @@ def _get_args():
     parser = argparse.ArgumentParser(
         prog='micronorm',
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        description='Normalizing sample in a DESeq2 fashion')
+        description="""
+=======================================
+Normalization of NGS microbiome samples
+Homepage: https://github.com/maxibor/microbiomeNormalization
+Methods:
+    - RLE Normalization: Relative Log Expression (DESeq)
+    - CLR Transformation: Centered Log Ratio Transform (Compositional)
+=======================================
+""")
     parser.add_argument('countFile', help="path to csv countFile")
+    parser.add_argument(
+        '-m',
+        dest="method",
+        default='RLE',
+        help="method (RLE | CLR). Default = RLE")
     parser.add_argument(
         '-o',
         dest="output",
         default=None,
-        help="Path to output file. Default = ./<file_basename>.normalized.csv")
+        help="Path to output file. Default = ./<file_basename>.<method>_micronorm.csv")
 
     args = parser.parse_args()
 
     infile = args.countFile
+    method = args.method
     outfile = args.output
 
-    return(infile, outfile)
+    return(infile, method, outfile)
 
 
-def _get_basename(file_name):
+def _get_basename(file_name, method):
     if ("/") in file_name:
-        basename = file_name.split("/")[-1].split(".")[0]+".normalized.csv"
+        basename = file_name.split(
+            "/")[-1].split(".")[0]+"."+method+"_micronorm.csv"
     else:
-        basename = file_name.split(".")[0]+".normalized.csv"
+        basename = file_name.split(".")[0]+"."+method+"_micronorm.csv"
     return(basename)
 
 
@@ -42,7 +58,7 @@ def write_csv(pd_dataframe, outfile):
     pd_dataframe.to_csv(outfile)
 
 
-def normalize(pd_dataframe):
+def RLE_normalize(pd_dataframe):
     d = pd_dataframe
     step1 = d.apply(np.log, 0)
     step2 = step1.apply(np.average, 1)
@@ -56,13 +72,35 @@ def normalize(pd_dataframe):
     return(step7)
 
 
+def CLR_normalize(pd_dataframe):
+    d = pd_dataframe
+    d = d.replace(0, 1)
+    step1_1 = d.apply(np.log, 0)
+    step1_2 = step1_1.apply(np.average, 0)
+    step1_3 = step1_2.apply(np.exp)
+    step2 = d.divide(step1_3, 1)
+    step3 = step2.apply(np.log, 0)
+    return(step3)
+
+
+def check_method(method):
+    methods = ["CLR", "RLE"]
+    if method.upper() not in methods:
+        print(f'Plese choose a method among {" - ".join(methods)}')
+        sys.exit(1)
+
+
 if __name__ == "__main__":
-    INFILE, OUTFILE = _get_args()
+    INFILE, METHOD, OUTFILE = _get_args()
+
+    check_method(METHOD)
 
     d = read_csv(INFILE)
-    normalized = normalize(d)
-
+    if METHOD == 'RLE':
+        normalized = RLE_normalize(d)
+    elif METHOD == 'CLR':
+        normalized = CLR_normalize(d)
     if not OUTFILE:
-        OUTFILE = _get_basename(INFILE)
+        OUTFILE = _get_basename(INFILE, METHOD)
 
     write_csv(normalized, OUTFILE)
