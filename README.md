@@ -54,6 +54,7 @@ Homepage: https://github.com/maxibor/microbiomeNormalization
 Methods:
     - RLE Normalization: Relative Log Expression (DESeq)
     - CLR Transformation: Centered Log Ratio Transform (Compositional)
+    - GMPR Normalization: Geometric Mean of Pairwise Ratios
 =======================================
 
 positional arguments:
