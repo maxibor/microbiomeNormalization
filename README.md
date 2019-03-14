@@ -9,9 +9,18 @@ Normalisation of metagenomics sequencing read count data.
 micronorm data/read_count.csv
 ```
 
+## Dependancies
+
+- Pandas  
+`conda install pandas`
+- Numpy  
+`conda install numpy`
+
+
 ## Assumption
 
-micronorm assumes that all the reads in sample are assigned to a feature, even if it's `unmapped_reads`.
+- micronorm assumes that all the reads in sample are assigned to a feature, even if it's `unmapped_reads`.
+- Samples in columns, OTUs in rows
 
 ## Example input:
 
@@ -37,7 +46,7 @@ Example file here:  [data/read_count.RLE_normalized.csv](data/read_count.RLE_nor
 
 ```
 $ micronorm -h
-usage: micronorm [-h] [-m METHOD] [-o OUTPUT] countFile
+usage: micronorm [-h] [-m METHOD] [-p PROCESS] [-o OUTPUT] countFile
 
 =======================================
 Normalization of NGS microbiome samples
@@ -52,29 +61,14 @@ positional arguments:
 
 optional arguments:
   -h, --help  show this help message and exit
-  -m METHOD   method (RLE | CLR). Default = RLE
-  -o OUTPUT   Path to output file. Default = ./<file_basename>.<method>_micronorm.csv
+  -m METHOD   method (CLR | RLE | GMPR). Default = GMPR
+  -p PROCESS  Number of process (only) for GMPR parallel computation.
+  -o OUTPUT   Path to output file. Default =
+              ./<file_basename>.<method>_micronorm.csv
 ```
-
-## Methods
-
-### RLE Normalization Method (DESeq)
-
-- **Step1:** Take the (natural) log of all values
-- **Step2:** Average each row
-- **Step3:** Filter out OTU with infinity
-- **Step4:** Substract the average log value from the log of the counts to each sample
-- **Step5:** Calculate the median for each sample
-- **Step6:** Convert the medians to "normal" numbers to get scaling factors for each sample
-- **Step7:** Divide the original read counts by the scaling factor
-
-### CLR Transformation Method (Compositional)
-
-- **Step1:** Replace all 0s by 1, and compute the geometric mean for each sample
-- **Step2:** Divide each value in each sample by the sample geometric mean
-- **Step3:** Take the natural log of each value
 
 ## References
 
-- [Normalization and microbial differential abundance strategies depend upon data characteristics](https://microbiomejournal.biomedcentral.com/articles/10.1186/s40168-017-0237-y)
-- [Microbiome Datasets Are Compositional: And This Is Not Optional](https://www.frontiersin.org/articles/10.3389/fmicb.2017.02224/full#B40)
+- [RLE - Love, M. I., Huber, W., & Anders, S. (2014). Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome biology, 1(12), 550.](https://doi.org/10.1186/s13059-014-0550-8)
+- [CLR - Aitchison, J. (1982). The statistical analysis of compositional data. Journal of the Royal Statistical Society: Series B (Methodological), 44(2), 139-160.](https://doi.org/10.1111/j.2517-6161.1982.tb01195.x)
+- [GMPR - Chen, L., Reeve, J., Zhang, L., Huang, S., Wang, X., & Chen, J. (2018). GMPR: A robust normalization method for zero-inflated count data with application to microbiome sequencing data. PeerJ, 6, e4600.](https://doi.org/10.7717/peerj.4600)

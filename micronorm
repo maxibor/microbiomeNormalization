@@ -3,10 +3,13 @@
 import argparse
 import pandas as pd
 import numpy as np
+import multiprocessing
+from functools import partial
 import sys
+import warnings
 
 
-def _get_args():
+def _get_args(all_methods):
     '''This function parses and return arguments passed in'''
     parser = argparse.ArgumentParser(
         prog='micronorm',
@@ -18,14 +21,20 @@ Homepage: https://github.com/maxibor/microbiomeNormalization
 Methods:
     - RLE Normalization: Relative Log Expression (DESeq)
     - CLR Transformation: Centered Log Ratio Transform (Compositional)
+    - GMPR Normalization: Geometric Mean of Pairwise Ratios
 =======================================
 """)
     parser.add_argument('countFile', help="path to csv countFile")
     parser.add_argument(
         '-m',
         dest="method",
-        default='RLE',
-        help="method (RLE | CLR). Default = RLE")
+        default='GMPR',
+        help=f"method ({' | '.join(all_methods)}). Default = GMPR")
+    parser.add_argument(
+        '-p',
+        dest="process",
+        default=1,
+        help="Number of process (only) for GMPR parallel computation.")
     parser.add_argument(
         '-o',
         dest="output",
@@ -36,9 +45,10 @@ Methods:
 
     infile = args.countFile
     method = args.method
+    process = int(args.process)
     outfile = args.output
 
-    return(infile, method, outfile)
+    return(infile, method, process, outfile)
 
 
 def _get_basename(file_name, method):
@@ -59,6 +69,13 @@ def write_csv(pd_dataframe, outfile):
 
 
 def RLE_normalize(pd_dataframe):
+    """
+    Relative Log Expression
+    Love, M. I., Huber, W., & Anders, S. (2014). 
+    Moderated estimation of fold change and dispersion for RNA-seq data 
+    with DESeq2. 
+    Genome biology, 15(12), 550.
+    """
     d = pd_dataframe
     step1 = d.apply(np.log, 0)
     step2 = step1.apply(np.average, 1)
@@ -73,8 +90,15 @@ def RLE_normalize(pd_dataframe):
 
 
 def CLR_normalize(pd_dataframe):
+    """
+    Centered Log Ratio
+    Aitchison, J. (1982). 
+    The statistical analysis of compositional data. 
+    Journal of the Royal Statistical Society: 
+    Series B (Methodological), 44(2), 139-160.
+    """
     d = pd_dataframe
-    d = d.replace(0, 1)
+    d = d+1
     step1_1 = d.apply(np.log, 0)
     step1_2 = step1_1.apply(np.average, 0)
     step1_3 = step1_2.apply(np.exp)
@@ -83,24 +107,54 @@ def CLR_normalize(pd_dataframe):
     return(step3)
 
 
-def check_method(method):
-    methods = ["CLR", "RLE"]
-    if method.upper() not in methods:
-        print(f'Plese choose a method among {" - ".join(methods)}')
+def gmpr_size_factor(col, ar):
+    pr = np.apply_along_axis(lambda x: np.divide(ar[:, col], x), 0, ar)
+    pr[np.isinf(pr)] = np.nan
+    pr[pr == 0] = np.nan
+    pr_median = np.nanmedian(pr, axis=0)
+    return(np.exp(np.mean(np.log(pr_median))))
+
+
+def GMPR_normalize(df, process):
+    """
+    Global Mean of Pairwise Ratios
+    Chen, L., Reeve, J., Zhang, L., Huang, S., Wang, X., & Chen, J. (2018). 
+    GMPR: A robust normalization method for zero-inflated count data 
+    with application to microbiome sequencing data. 
+    PeerJ, 6, e4600.
+    """
+    ar = np.asarray(df)
+
+    gmpr_sf_partial = partial(gmpr_size_factor, ar=ar)
+    with multiprocessing.Pool(process) as p:
+        sf = p.map(gmpr_sf_partial, list(range(np.shape(ar)[1])))
+
+    return(pd.DataFrame(np.divide(ar, sf), index=df.index, columns=df.columns))
+
+
+def check_method(method, all_methods):
+    if method not in all_methods:
+        print(f'Please choose a method among {" | ".join(all_methods)}')
         sys.exit(1)
 
 
 if __name__ == "__main__":
-    INFILE, METHOD, OUTFILE = _get_args()
-
-    check_method(METHOD)
-
+    all_methods = ["CLR", "RLE", "GMPR"]
+    INFILE, METHOD, PROCESS, OUTFILE = _get_args(all_methods)
+    METHOD = METHOD.upper()
+    check_method(METHOD, all_methods)
+    print(f'Performing {METHOD} normalization')
     d = read_csv(INFILE)
     if METHOD == 'RLE':
         normalized = RLE_normalize(d)
     elif METHOD == 'CLR':
         normalized = CLR_normalize(d)
+    elif METHOD == 'GMPR':
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            normalized = GMPR_normalize(d, PROCESS)
     if not OUTFILE:
         OUTFILE = _get_basename(INFILE, METHOD)
 
     write_csv(normalized, OUTFILE)
+    print(f"Normalized data written to {OUTFILE}")
