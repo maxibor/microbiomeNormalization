@@ -18,7 +18,9 @@ def _get_args(all_methods):
 =======================================
 Normalization of NGS microbiome samples
 Homepage: https://github.com/maxibor/microbiomeNormalization
+Samples in columns, OTUs in lines.
 Methods:
+    - Rarefaction: Subsampling samples to the depth of the shallowest
     - RLE Normalization: Relative Log Expression (DESeq)
     - CLR Transformation: Centered Log Ratio Transform (Compositional)
     - GMPR Normalization: Geometric Mean of Pairwise Ratios
@@ -66,6 +68,18 @@ def read_csv(infile):
 
 def write_csv(pd_dataframe, outfile):
     pd_dataframe.to_csv(outfile)
+
+
+def RAREFACTION_normalize(pd_dataframe):
+    """
+    Normalization by rarefaction
+    Subsampling samples to the depth of the shallowest
+    """
+    d = pd_dataframe
+    dmin = d.sum(axis=0).min()
+    sf = dmin/d.sum(axis=0)
+    scaled = d.multiply(sf, axis=1).apply(round)
+    return(scaled)
 
 
 def RLE_normalize(pd_dataframe):
@@ -139,7 +153,7 @@ def check_method(method, all_methods):
 
 
 if __name__ == "__main__":
-    all_methods = ["CLR", "RLE", "GMPR"]
+    all_methods = ["CLR", "RLE", "GMPR", "RAREFACTION"]
     INFILE, METHOD, PROCESS, OUTFILE = _get_args(all_methods)
     METHOD = METHOD.upper()
     check_method(METHOD, all_methods)
@@ -153,6 +167,8 @@ if __name__ == "__main__":
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", RuntimeWarning)
             normalized = GMPR_normalize(d, PROCESS)
+    elif METHOD == 'RAREFACTION':
+        normalized = RAREFACTION_normalize(d)
     if not OUTFILE:
         OUTFILE = _get_basename(INFILE, METHOD)
 

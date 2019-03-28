@@ -10,3 +10,4 @@ script:
   - python micronorm -m RLE data/read_count.csv
   - python micronorm -m CLR data/read_count.csv
   - python micronorm -m GMPR data/read_count.csv
+  - python micronorm -m RAREFACTION data/read_count.csv
